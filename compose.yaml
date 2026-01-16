@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: som_db
+    environment:
+      POSTGRES_DB: smart_orders
+      POSTGRES_USER: smart_user
+      POSTGRES_PASSWORD: smart_pass
+    ports:
+    - "5433:5432"
+
+      
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: som_web
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
