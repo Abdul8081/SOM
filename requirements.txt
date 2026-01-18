@@ -6,3 +6,12 @@ django-filter>=24.2
 djangorestframework-simplejwt>=5.3
 celery>=5.4
 redis>=5.0
+
+# API Documentation (Swagger / OpenAPI)
+drf-spectacular>=0.29.0
+
+# Utilities required by drf-spectacular
+PyYAML>=6.0
+uritemplate>=4.2.0
+inflection>=0.5.1
+jsonschema>=4.26.0
