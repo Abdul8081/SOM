@@ -1,10 +1,12 @@
-# payments/views.py
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from orders.models import Order
 from .services import initiate_payment, confirm_payment
 from .serializers import PaymentSerializer
+from django.shortcuts import get_object_or_404
+from .models import Payment
 
 
 class InitiatePaymentView(APIView):
@@ -12,15 +14,12 @@ class InitiatePaymentView(APIView):
 
     def post(self, request):
         order_id = request.data.get("order_id")
-        provider = request.data.get("provider", "mock")
-
-        payment = initiate_payment(
-            user=request.user,
-            order_id=order_id,
-            provider=provider,
+        order = get_object_or_404(
+            Order, id=order_id, user=request.user, status="CREATED"
         )
 
-        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+        payment = initiate_payment(order=order)
+        return Response(PaymentSerializer(payment).data)
 
 
 class ConfirmPaymentView(APIView):
@@ -28,9 +27,13 @@ class ConfirmPaymentView(APIView):
 
     def post(self, request):
         payment_id = request.data.get("payment_id")
-        success = request.data.get("success", True)
 
-        payment = Payment.objects.get(id=payment_id)
-        payment = confirm_payment(payment, success)
+        payment = get_object_or_404(
+            Payment,
+            id=payment_id,
+            order__user=request.user,
+            status="PENDING",
+        )
 
+        payment = confirm_payment(payment=payment)
         return Response(PaymentSerializer(payment).data)

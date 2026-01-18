@@ -1,41 +1,41 @@
-# payments/services.py
-import uuid
-from decimal import Decimal
 from django.db import transaction
-from orders.models import Order
-from .models import Payment, PaymentStatus
+from .models import Payment
+from .providers.mock import MockPaymentProvider
 
 
 @transaction.atomic
-def initiate_payment(*, user, order_id, provider) -> Payment:
-    with transaction.atomic():
-        order = Order.objects.select_for_update().get(id=order_id, user=user)
+def initiate_payment(*, order):
+    if hasattr(order, "payment"):
+        return order.payment  # idempotent
 
-        if order.status == "PAID":
-            raise ValueError("Order already paid")
+    provider = MockPaymentProvider()
 
-        payment = Payment.objects.create(
-            order=order,
-            provider=provider,
-            transaction_id=f"txn_{uuid.uuid4().hex}",
-            amount=Decimal(order.total_amount),
-            status=PaymentStatus.PENDING,
-        )
+    response = provider.initiate(order.total_amount)
 
-        return payment
+    payment = Payment.objects.create(
+        order=order,
+        provider="mock",
+        amount=order.total_amount,
+        transaction_id=response["transaction_id"],
+        provider_payment_id=response["provider_payment_id"],
+        status="PENDING",
+    )
+
+    return payment
 
 
 @transaction.atomic
-def confirm_payment(payment: Payment, success=True):
-    if success:
+def confirm_payment(*, payment):
+    provider = MockPaymentProvider()
+    response = provider.confirm(payment.provider_payment_id)
+
+    if response["status"] == "SUCCESS":
         payment.status = "SUCCESS"
-        payment.provider_payment_id = "MOCK123456"
-        payment.order.status = "PAID"
-    else:
-        payment.status = "FAILED"
-        payment.order.status = "PAYMENT_FAILED"
+        payment.save(update_fields=["status"])
 
-    payment.payment.save()
-    payment.order.save()
+        # update order
+        order = payment.order
+        order.status = "PAID"
+        order.save(update_fields=["status"])
 
     return payment

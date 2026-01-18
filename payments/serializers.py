@@ -1,5 +1,4 @@
-# payments/serializers.py
-from rest_framework import serializers  # type: ignore
+from rest_framework import serializers
 from .models import Payment
 
 
@@ -7,4 +6,9 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = "__all__"
-        read_only_fields = ("status", "provider_payment_id")
+        read_only_fields = (
+            "transaction_id",
+            "provider_payment_id",
+            "status",
+            "created_at",
+        )
