@@ -16,6 +16,7 @@ from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Quick-start development settings - unsuitable for production
@@ -24,6 +25,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-xrx^wkf8vjm6kv*yiuxty1(6lwx-6+j3rj1t$7b10)tla9%p$i"
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+
+## Celery Configuration
+# CELERY CONFIG
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_BACKEND = "redis://redis:6379/1"
+CELERY_TIMEZONE = "UTC"
+
+
+## Notificatiions configuraion
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@example.com"
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

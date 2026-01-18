@@ -1,6 +1,7 @@
 from django.db import transaction
 from .models import Payment
 from .providers.mock import MockPaymentProvider
+from notifications.tasks import send_payment_success_notification
 
 
 @transaction.atomic
@@ -37,5 +38,9 @@ def confirm_payment(*, payment):
         order = payment.order
         order.status = "PAID"
         order.save(update_fields=["status"])
+
+    send_payment_success_notification.delay(
+        payment.order.user.id, payment.order.id, payment.amount
+    )
 
     return payment

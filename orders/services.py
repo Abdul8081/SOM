@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any
 from django.db import transaction  # type: ignore
 from .models import Order, OrderItem
+from notifications.tasks import send_order_created_notification
 
 
 @dataclass
@@ -39,5 +40,6 @@ def create_order(*, user, items):
 
         order.total_amount = total
         order.save(update_fields=["total_amount"])
+        send_order_created_notification.delay(order.user.id, order.id)
 
         return order
