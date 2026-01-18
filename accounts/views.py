@@ -24,3 +24,6 @@ class UserProfileView(APIView):
     def get(self, request):
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
+
+
+# TODO : user deletion from django-admin have to implent

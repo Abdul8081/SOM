@@ -1,11 +1,22 @@
 from rest_framework import serializers  # type: ignore
 from .models import Order, OrderItem
+from decimal import Decimal
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
-        fields = ["product_name", "quantity", "price"]
+        fields = ["name", "quantity", "price"]
+
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than zero.")
+        return value
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Price must be greater than zero.")
+        return value
 
 
 class OrderSerializer(serializers.ModelSerializer):

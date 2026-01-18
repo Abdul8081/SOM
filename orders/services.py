@@ -7,7 +7,7 @@ from .models import Order, OrderItem
 
 @dataclass
 class OrderItemRequest:
-    product_name: str
+    name: str
     quantity: int
     price: Decimal
 
@@ -19,21 +19,25 @@ class OrderRequest:
 
 
 @transaction.atomic
-def create_order(order_request: OrderRequest) -> Order:
-    order = Order.objects.create(user=order_request.user)
+def create_order(*, user, items):
+    with transaction.atomic():
+        order = Order.objects.create(user=user)
 
-    total = Decimal("0.00")
+        total = Decimal("0.00")
 
-    for item in order_request.items:
-        OrderItem.objects.create(
-            order=order,
-            product_name=item.product_name,
-            quantity=item.quantity,
-            price=item.price,
-        )
-        total += item.price * item.quantity
+        for item in items:
+            # line_total = item["price"] * item["quantity"]   in this line therew was the error, item an object not dictionary, I was using that in the form of the dictionary that's why this issue was coming.  like payment = 0.0. and item = 0.
+            line_total = item.price * item.quantity
+            total += line_total
 
-    order.total_amount = total
-    order.save()
+            OrderItem.objects.create(
+                order=order,
+                name=item.name,
+                price=item.price,
+                quantity=item.quantity,
+            )
 
-    return order
+        order.total_amount = total
+        order.save(update_fields=["total_amount"])
+
+        return order

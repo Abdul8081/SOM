@@ -3,13 +3,16 @@ from rest_framework.response import Response  # type: ignore
 from rest_framework.permissions import IsAuthenticated  # type: ignore
 from rest_framework import status  # type: ignore
 from django.shortcuts import get_object_or_404  # type: ignore
+from .services import create_order, OrderRequest, OrderItemRequest
+
+# from .serializers import OrderCreateSerializer
+from .services import create_order
 
 from .models import Order
 from .serializers import (
     OrderItemSerializer,
     OrderSerializer,
 )
-from .services import create_order, OrderRequest, OrderItemRequest
 
 
 class OrderListCreateView(APIView):
@@ -21,13 +24,19 @@ class OrderListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        items_data = request.data.get("items", [])
+        items_data = request.data.get("items")
+        if not items_data:
+            return Response(
+                {"detail": "Order must contain at least one item."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = OrderItemSerializer(data=items_data, many=True)
         serializer.is_valid(raise_exception=True)
 
         items = [OrderItemRequest(**item) for item in serializer.validated_data]
 
-        order = create_order(OrderRequest(user=request.user, items=items))
+        order = create_order(user=request.user, items=items)
 
         return Response(
             OrderSerializer(order).data,
