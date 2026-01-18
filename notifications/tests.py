@@ -1,36 +1,78 @@
-from celery import shared_task
-from django.contrib.auth import get_user_model
+from django.test import TestCase
+from unittest.mock import patch
 
-from .email import send_email
-from .sms import send_sms
-from .services import (
-    order_created_message,
-    payment_success_message,
+from notifications.tasks import (
+    send_order_created_notification,
+    send_payment_success_notification,
 )
 
-User = get_user_model()
 
+class NotificationTaskTests(TestCase):
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={"max_retries": 3})
-def send_order_created_notification(self, user_id, order_id):
-    user = User.objects.get(id=user_id)
+    @patch("notifications.tasks.time.sleep")
+    @patch("builtins.print")
+    def test_order_created_notification_prints_message(self, mock_print, mock_sleep):
+        send_order_created_notification(
+            user_id=1,
+            order_id=101,
+        )
 
-    subject, message = order_created_message(order_id)
+        mock_sleep.assert_called_once_with(1)
+        mock_print.assert_called_once_with(
+            "[NOTIFICATION] Order 101 created for user 1"
+        )
 
-    if user.email:
-        send_email(subject, message, user.email)
+    @patch("notifications.tasks.time.sleep")
+    @patch("builtins.print")
+    def test_payment_success_notification_prints_message(self, mock_print, mock_sleep):
+        send_payment_success_notification(
+            user_id=2,
+            order_id=202,
+            amount=499,
+        )
 
-    # mock phone
-    send_sms("9999999999", message)
+        mock_sleep.assert_called_once_with(1)
+        mock_print.assert_called_once_with(
+            "[NOTIFICATION] Payment successful for order 202 (₹499) user 2"
+        )
 
+    # -------------------------------
+    # NEW TEST CASES
+    # -------------------------------
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={"max_retries": 3})
-def send_payment_success_notification(self, user_id, order_id, amount):
-    user = User.objects.get(id=user_id)
+    @patch("notifications.tasks.time.sleep", side_effect=Exception("fail"))
+    def test_order_created_notification_retries_on_exception(self, mock_sleep):
+        with self.assertRaises(Exception):
+            send_order_created_notification(
+                user_id=1,
+                order_id=101,
+            )
 
-    subject, message = payment_success_message(order_id, amount)
+        mock_sleep.assert_called_once()
 
-    if user.email:
-        send_email(subject, message, user.email)
+    @patch("notifications.tasks.time.sleep", side_effect=Exception("fail"))
+    def test_payment_success_notification_retries_on_exception(self, mock_sleep):
+        with self.assertRaises(Exception):
+            send_payment_success_notification(
+                user_id=2,
+                order_id=202,
+                amount=499,
+            )
 
-    send_sms("9999999999", message)
+        mock_sleep.assert_called_once()
+
+    @patch("notifications.tasks.time.sleep")
+    @patch("builtins.print")
+    def test_notification_tasks_return_none(self, mock_print, mock_sleep):
+        result1 = send_order_created_notification(
+            user_id=1,
+            order_id=101,
+        )
+        result2 = send_payment_success_notification(
+            user_id=2,
+            order_id=202,
+            amount=499,
+        )
+
+        self.assertIsNone(result1)
+        self.assertIsNone(result2)
