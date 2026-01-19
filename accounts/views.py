@@ -2,13 +2,17 @@ from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from rest_framework.permissions import AllowAny, IsAuthenticated  # type: ignore
 from rest_framework import status  # type: ignore
+from drf_spectacular.utils import extend_schema
 
 from .serializers import UserRegisterSerializer, UserProfileSerializer
 
 
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
-
+    @extend_schema(
+        request=UserRegisterSerializer,
+        responses=UserProfileSerializer,
+    )
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
