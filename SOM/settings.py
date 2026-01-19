@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "payments",
     "notifications",
     "drf_spectacular",
+    'django_extensions',
 ]
 
 
