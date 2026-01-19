@@ -4,14 +4,23 @@ from rest_framework.response import Response
 from rest_framework import status
 from orders.models import Order
 from .services import initiate_payment, confirm_payment
-from .serializers import PaymentSerializer
+from .serializers import (
+    PaymentSerializer,
+    InitiatePaymentRequestSerializer,
+    ConfirmPaymentRequestSerializer,
+)
 from django.shortcuts import get_object_or_404
 from .models import Payment
+
+from drf_spectacular.utils import extend_schema
 
 
 class InitiatePaymentView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        request=InitiatePaymentRequestSerializer,
+        responses=PaymentSerializer,
+    )
     def post(self, request):
         order_id = request.data.get("order_id")
         order = get_object_or_404(
@@ -24,7 +33,10 @@ class InitiatePaymentView(APIView):
 
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        request=ConfirmPaymentRequestSerializer,
+        responses=PaymentSerializer,
+    )
     def post(self, request):
         payment_id = request.data.get("payment_id")
 

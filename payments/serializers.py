@@ -12,3 +12,13 @@ class PaymentSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
         )
+        
+# 🔹 Swagger-only serializers (DO NOT affect logic)
+
+class InitiatePaymentRequestSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+
+
+class ConfirmPaymentRequestSerializer(serializers.Serializer):
+    payment_id = serializers.IntegerField()
+

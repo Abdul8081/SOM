@@ -4,25 +4,31 @@ from rest_framework.permissions import IsAuthenticated  # type: ignore
 from rest_framework import status  # type: ignore
 from django.shortcuts import get_object_or_404  # type: ignore
 from .services import create_order, OrderRequest, OrderItemRequest
-
-# from .serializers import OrderCreateSerializer
-from .services import create_order
+from drf_spectacular.utils import extend_schema
 
 from .models import Order
+
 from .serializers import (
-    OrderItemSerializer,
     OrderSerializer,
+    OrderItemSerializer,
+    OrderCreateRequestSerializer,
 )
 
 
 class OrderListCreateView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        responses=OrderSerializer(many=True),
+    )
     def get(self, request):
         orders = Order.objects.filter(user=request.user).order_by("-created_at")
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=OrderCreateRequestSerializer,
+        responses=OrderSerializer,
+    )
     def post(self, request):
         items_data = request.data.get("items")
         if not items_data:
@@ -46,7 +52,10 @@ class OrderListCreateView(APIView):
 
 class OrderDetailView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        request=OrderCreateRequestSerializer,
+        responses=OrderSerializer,
+    )
     def get(self, request, order_id):
         order = get_object_or_404(Order, id=order_id, user=request.user)
         return Response(OrderSerializer(order).data)
