@@ -4,7 +4,7 @@ from typing import Any
 from django.db import transaction  # type: ignore
 from .models import Order, OrderItem
 from notifications.tasks import send_order_created_notification
-
+from django.core.cache import cache
 
 @dataclass
 class OrderItemRequest:
@@ -40,6 +40,11 @@ def create_order(*, user, items):
 
         order.total_amount = total
         order.save(update_fields=["total_amount"])
+        
+         # 🔥 CACHE INVALIDATION
+        cache.delete(f"user_orders_{user.id}")
+        cache.delete(f"latest_order_{user.id}")
+        
         send_order_created_notification.delay(order.user.id, order.id)
 
         return order

@@ -3,6 +3,7 @@ from rest_framework.response import Response  # type: ignore
 from rest_framework.permissions import AllowAny, IsAuthenticated  # type: ignore
 from rest_framework import status  # type: ignore
 from drf_spectacular.utils import extend_schema
+from django.core.cache import cache
 
 from .serializers import UserRegisterSerializer, UserProfileSerializer
 
@@ -26,7 +27,13 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        cache_key = f"user_profile_{request.user.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        
         serializer = UserProfileSerializer(request.user)
+        cache.set(cache_key, serializer.data, timeout=300)  # 5 minutes
         return Response(serializer.data)
 
 

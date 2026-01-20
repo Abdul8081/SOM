@@ -1,3 +1,4 @@
+from urllib import request
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from rest_framework.permissions import IsAuthenticated  # type: ignore
@@ -5,6 +6,7 @@ from rest_framework import status  # type: ignore
 from django.shortcuts import get_object_or_404  # type: ignore
 from .services import create_order, OrderRequest, OrderItemRequest
 from drf_spectacular.utils import extend_schema
+from django.core.cache import cache
 
 from .models import Order
 
@@ -21,8 +23,16 @@ class OrderListCreateView(APIView):
         responses=OrderSerializer(many=True),
     )
     def get(self, request):
+        cache_key = f"user_orders_{request.user.id}"
+        cached_orders = cache.get(cache_key)
+        if cached_orders:
+            return Response(cached_orders)
+        
+        
         orders = Order.objects.filter(user=request.user).order_by("-created_at")
         serializer = OrderSerializer(orders, many=True)
+        
+        cache.set(cache_key, serializer.data, timeout=300)
         return Response(serializer.data)
 
     @extend_schema(
@@ -76,8 +86,11 @@ class OrderDetailView(APIView):
 
 class LatestOrderView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
+        cache_key = f"latest_order_{request.user.id}"
+        cached_order = cache.get(cache_key)
+        if cached_order:
+            return Response(cached_order)
         order = Order.objects.filter(user=request.user).order_by("-created_at").first()
 
         if not order:
@@ -86,4 +99,7 @@ class LatestOrderView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response(OrderSerializer(order).data)
+        serializer = OrderSerializer(order)
+        cache.set(cache_key, serializer.data, timeout=300)
+
+        return Response(serializer.data)
