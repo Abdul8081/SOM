@@ -5,6 +5,9 @@ from django.db import transaction  # type: ignore
 from .models import Order, OrderItem
 from notifications.tasks import send_order_created_notification
 from django.core.cache import cache
+import logging
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class OrderItemRequest:
@@ -40,6 +43,10 @@ def create_order(*, user, items):
 
         order.total_amount = total
         order.save(update_fields=["total_amount"])
+        
+        logger.info(
+            f"Order created: order_id={order.id}, user_id={user.id}, total={total}"
+        )
         
          # 🔥 CACHE INVALIDATION
         cache.delete(f"user_orders_{user.id}")

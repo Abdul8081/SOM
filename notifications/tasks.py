@@ -6,6 +6,9 @@ from notifications.services import (
     order_created_message,
     payment_success_message,
 )
+import logging
+logger = logging.getLogger(__name__)
+
 
 User = get_user_model()
 
@@ -19,6 +22,14 @@ def send_order_created_notification(self, user_id, order_id):
    
     if user.email:
         send_email(subject, message, user.email)
+        logger.info(
+            f"Order email sent: order_id={order_id}, user_id={user_id}, email={user.email}"
+        )
+        
+    else:
+        logger.warning(
+            f"Order email skipped (no email): order_id={order_id}, user_id={user_id}"
+        )
         
     # TODO Implement logging for failed email attempts
     # else:
@@ -32,5 +43,10 @@ def send_payment_success_notification(self, user_id, order_id, amount):
 
     if user.email:
         send_email(subject, message, user.email)
-    # else:
-    #     throw ValueError("User does not have an email address.")
+        logger.info(
+            f"Payment email sent: order_id={order_id}, user_id={user_id}, amount={amount}"
+        )
+    else:
+        logger.warning(
+            f"Payment email skipped (no email): order_id={order_id}, user_id={user_id}"
+        )

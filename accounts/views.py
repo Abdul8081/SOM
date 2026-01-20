@@ -1,9 +1,13 @@
+from urllib import request
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from rest_framework.permissions import AllowAny, IsAuthenticated  # type: ignore
 from rest_framework import status  # type: ignore
 from drf_spectacular.utils import extend_schema
 from django.core.cache import cache
+import logging
+
+logger  = logging.getLogger(__name__)
 
 from .serializers import UserRegisterSerializer, UserProfileSerializer
 
@@ -18,6 +22,7 @@ class UserRegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        logger.info(f"User registered: id={user.id}, username={user.username}")
         return Response(
             UserProfileSerializer(user).data, status=status.HTTP_201_CREATED
         )
@@ -27,6 +32,7 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        logger.info(f"Profile fetched for user_id={request.user.id}")
         cache_key = f"user_profile_{request.user.id}"
         cached_data = cache.get(cache_key)
         if cached_data:
