@@ -39,7 +39,6 @@ def send_order_created_notification(self, user_id, order_id):
             f"Order email skipped (no email): order_id={order_id}, user_id={user_id}"
         )
         
-    # TODO Implement logging for failed email attempts
     # else:
     #     throw ValueError("User does not have an email address.")
 
